@@ -1,7 +1,14 @@
 const path = require('path');
+const fs = require('fs');
 const sqlite3 = require('sqlite3').verbose();
 
-const dbPath = path.join(__dirname, '..', 'data', 'fitness.db');
+const defaultDbPath = path.join(__dirname, '..', 'database', 'database.sqlite');
+const dbPath = process.env.DB_PATH
+  ? path.resolve(process.env.DB_PATH)
+  : defaultDbPath;
+
+fs.mkdirSync(path.dirname(dbPath), { recursive: true });
+
 const db = new sqlite3.Database(dbPath, (err) => {
   if (err) {
     // eslint-disable-next-line no-console

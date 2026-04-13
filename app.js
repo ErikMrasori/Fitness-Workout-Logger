@@ -1,6 +1,8 @@
 const express = require('express');
 const dotenv = require('dotenv');
 
+dotenv.config();
+
 const requestLogger = require('./middleware/requestLogger');
 const errorHandler = require('./middleware/errorHandler');
 
@@ -11,8 +13,6 @@ const exerciseRoutes = require('./routes/exerciseRoutes');
 const logRoutes = require('./routes/logRoutes');
 
 require('./config/db');
-
-dotenv.config();
 
 const app = express();
 
