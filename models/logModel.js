@@ -1,5 +1,7 @@
 const db = require('../config/db');
 
+const hasField = (fields, key) => Object.prototype.hasOwnProperty.call(fields, key);
+
 const createLog = (workoutId, exerciseId, reps, sets, callback) => {
   db.run(
     'INSERT INTO logs (workout_id, exercise_id, reps, sets) VALUES (?, ?, ?, ?)',
@@ -55,19 +57,19 @@ const updateLogPatch = (id, fields, callback) => {
   const updates = [];
   const values = [];
 
-  if (fields.workout_id) {
+  if (hasField(fields, 'workout_id')) {
     updates.push('workout_id = ?');
     values.push(fields.workout_id);
   }
-  if (fields.exercise_id) {
+  if (hasField(fields, 'exercise_id')) {
     updates.push('exercise_id = ?');
     values.push(fields.exercise_id);
   }
-  if (fields.reps) {
+  if (hasField(fields, 'reps')) {
     updates.push('reps = ?');
     values.push(fields.reps);
   }
-  if (fields.sets) {
+  if (hasField(fields, 'sets')) {
     updates.push('sets = ?');
     values.push(fields.sets);
   }

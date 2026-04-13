@@ -1,5 +1,7 @@
 const db = require('../config/db');
 
+const hasField = (fields, key) => Object.prototype.hasOwnProperty.call(fields, key);
+
 const createUser = (username, password, role, callback) => {
   const sql = 'INSERT INTO users (username, password, role) VALUES (?, ?, ?)';
   db.run(sql, [username, password, role], function insertUser(err) {
@@ -30,12 +32,12 @@ const updateUserPatch = (id, fields, callback) => {
   const allowed = [];
   const values = [];
 
-  if (fields.username) {
+  if (hasField(fields, 'username')) {
     allowed.push('username = ?');
     values.push(fields.username);
   }
 
-  if (fields.role) {
+  if (hasField(fields, 'role')) {
     allowed.push('role = ?');
     values.push(fields.role);
   }

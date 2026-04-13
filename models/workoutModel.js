@@ -1,5 +1,7 @@
 const db = require('../config/db');
 
+const hasField = (fields, key) => Object.prototype.hasOwnProperty.call(fields, key);
+
 const createWorkout = (userId, name, date, callback) => {
   db.run(
     'INSERT INTO workouts (user_id, name, date) VALUES (?, ?, ?)',
@@ -36,12 +38,12 @@ const updateWorkoutPatch = (id, fields, callback) => {
   const updates = [];
   const values = [];
 
-  if (fields.name) {
+  if (hasField(fields, 'name')) {
     updates.push('name = ?');
     values.push(fields.name);
   }
 
-  if (fields.date) {
+  if (hasField(fields, 'date')) {
     updates.push('date = ?');
     values.push(fields.date);
   }

@@ -3,25 +3,31 @@ const workoutModel = require('../models/workoutModel');
 
 const canAccessLog = (requestUser, log) => requestUser.role === 'admin' || log.user_id === requestUser.id;
 
-const createLog = (req, res, next) => {
-  const { workout_id: workoutId, exercise_id: exerciseId, reps, sets } = req.body;
-
-  return workoutModel.getWorkoutById(Number(workoutId), (workoutErr, workout) => {
+const validateTargetWorkoutAccess = (requestUser, workoutId, res, next, onSuccess) => {
+  workoutModel.getWorkoutById(Number(workoutId), (workoutErr, workout) => {
     if (workoutErr) return next(workoutErr);
     if (!workout) return res.status(404).json({ message: 'Workout not found.' });
-    if (req.user.role !== 'admin' && workout.user_id !== req.user.id) {
+    if (requestUser.role !== 'admin' && workout.user_id !== requestUser.id) {
       return res.status(403).json({ message: 'Forbidden.' });
     }
 
-    return logModel.createLog(workoutId, exerciseId, reps, sets, (err, logId) => {
+    return onSuccess();
+  });
+};
+
+const createLog = (req, res, next) => {
+  const { workout_id: workoutId, exercise_id: exerciseId, reps, sets } = req.body;
+
+  return validateTargetWorkoutAccess(req.user, workoutId, res, next, () =>
+    logModel.createLog(workoutId, exerciseId, reps, sets, (err, logId) => {
       if (err) return next(err);
 
       return logModel.getLogById(logId, (findErr, log) => {
         if (findErr) return next(findErr);
         return res.status(201).json({ message: 'Log created successfully.', data: log });
       });
-    });
-  });
+    })
+  );
 };
 
 const getLogs = (req, res, next) => {
@@ -59,15 +65,17 @@ const updateLogPut = (req, res, next) => {
     if (!log) return res.status(404).json({ message: 'Log not found.' });
     if (!canAccessLog(req.user, log)) return res.status(403).json({ message: 'Forbidden.' });
 
-    return logModel.updateLogPut(id, workoutId, exerciseId, reps, sets, (err, changes) => {
-      if (err) return next(err);
-      if (!changes) return res.status(404).json({ message: 'Log not found.' });
+    return validateTargetWorkoutAccess(req.user, workoutId, res, next, () =>
+      logModel.updateLogPut(id, workoutId, exerciseId, reps, sets, (err, changes) => {
+        if (err) return next(err);
+        if (!changes) return res.status(404).json({ message: 'Log not found.' });
 
-      return logModel.getLogById(id, (getErr, updatedLog) => {
-        if (getErr) return next(getErr);
-        return res.status(200).json({ message: 'Log updated successfully.', data: updatedLog });
-      });
-    });
+        return logModel.getLogById(id, (getErr, updatedLog) => {
+          if (getErr) return next(getErr);
+          return res.status(200).json({ message: 'Log updated successfully.', data: updatedLog });
+        });
+      })
+    );
   });
 };
 
@@ -79,7 +87,7 @@ const updateLogPatch = (req, res, next) => {
     if (!log) return res.status(404).json({ message: 'Log not found.' });
     if (!canAccessLog(req.user, log)) return res.status(403).json({ message: 'Forbidden.' });
 
-    return logModel.updateLogPatch(id, req.body, (err, changes) => {
+    const applyPatch = () => logModel.updateLogPatch(id, req.body, (err, changes) => {
       if (err && err.message === 'No valid fields to update') {
         return res.status(400).json({ message: err.message });
       }
@@ -91,6 +99,12 @@ const updateLogPatch = (req, res, next) => {
         return res.status(200).json({ message: 'Log patched successfully.', data: updatedLog });
       });
     });
+
+    if (Object.prototype.hasOwnProperty.call(req.body, 'workout_id')) {
+      return validateTargetWorkoutAccess(req.user, req.body.workout_id, res, next, applyPatch);
+    }
+
+    return applyPatch();
   });
 };
 

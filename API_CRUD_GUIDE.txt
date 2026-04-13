@@ -1,0 +1,403 @@
+FITNESS WORKOUT LOGGER API - CRUD GUIDE
+
+Base URL
+- http://localhost:3000
+
+Auth Rules
+- Public routes: /auth/register, /auth/login
+- All other routes require header:
+  Authorization: Bearer <JWT_TOKEN>
+- Roles:
+  admin = full access
+  user = can manage only their own workouts and logs
+
+General Notes
+- All responses are JSON
+- Most successful responses return:
+  message
+  data
+- Route params use numeric IDs
+- PUT = full update of required fields
+- PATCH = partial update of one or more fields
+
+==================================================
+1. AUTH ENDPOINTS
+==================================================
+
+CREATE USER ACCOUNT
+- Method: POST
+- Endpoint: /auth/register
+- Auth required: No
+- Body required:
+  username (string)
+  password (string)
+- Body optional:
+  role (string: admin or user)
+- Notes:
+  If role is omitted, user is created as user
+- Example body:
+  {
+    "username": "john",
+    "password": "Pass123!",
+    "role": "user"
+  }
+
+LOGIN
+- Method: POST
+- Endpoint: /auth/login
+- Auth required: No
+- Body required:
+  username (string)
+  password (string)
+- Response returns:
+  token
+  user
+- Example body:
+  {
+    "username": "john",
+    "password": "Pass123!"
+  }
+
+==================================================
+2. USERS ENDPOINTS
+==================================================
+
+Important:
+- There is NO POST /users route
+- User creation is done with POST /auth/register
+- All /users routes are admin only
+
+READ ALL USERS
+- Method: GET
+- Endpoint: /users
+- Auth required: Yes
+- Role required: admin
+- Body: none
+
+READ ONE USER
+- Method: GET
+- Endpoint: /users/:id
+- Auth required: Yes
+- Role required: admin
+- ID used:
+  :id = user id
+- Body: none
+
+UPDATE USER FULL
+- Method: PUT
+- Endpoint: /users/:id
+- Auth required: Yes
+- Role required: admin
+- ID used:
+  :id = user id
+- Body required:
+  username (string)
+  role (string: admin or user)
+- Example body:
+  {
+    "username": "john_updated",
+    "role": "user"
+  }
+
+UPDATE USER PARTIAL
+- Method: PATCH
+- Endpoint: /users/:id
+- Auth required: Yes
+- Role required: admin
+- ID used:
+  :id = user id
+- Body optional, send one or more:
+  username (string)
+  role (string: admin or user)
+- Example body:
+  {
+    "role": "admin"
+  }
+
+DELETE USER
+- Method: DELETE
+- Endpoint: /users/:id
+- Auth required: Yes
+- Role required: admin
+- ID used:
+  :id = user id
+- Body: none
+
+==================================================
+3. WORKOUTS ENDPOINTS
+==================================================
+
+Rules
+- admin can access all workouts
+- user can access only their own workouts
+
+CREATE WORKOUT
+- Method: POST
+- Endpoint: /workouts
+- Auth required: Yes
+- Body required:
+  name (string)
+  date (string, example: 2026-04-13)
+- Body optional:
+  user_id (number, admin only if creating for another user)
+- Notes:
+  Normal user does not need to send user_id
+  For normal user, workout is saved under req.user.id
+- Example body:
+  {
+    "name": "Push Day",
+    "date": "2026-04-13"
+  }
+
+READ ALL WORKOUTS
+- Method: GET
+- Endpoint: /workouts
+- Auth required: Yes
+- Body: none
+- Result:
+  admin gets all workouts
+  user gets only own workouts
+
+READ ONE WORKOUT
+- Method: GET
+- Endpoint: /workouts/:id
+- Auth required: Yes
+- ID used:
+  :id = workout id
+- Body: none
+
+UPDATE WORKOUT FULL
+- Method: PUT
+- Endpoint: /workouts/:id
+- Auth required: Yes
+- ID used:
+  :id = workout id
+- Body required:
+  name (string)
+  date (string)
+- Example body:
+  {
+    "name": "Pull Day",
+    "date": "2026-04-14"
+  }
+
+UPDATE WORKOUT PARTIAL
+- Method: PATCH
+- Endpoint: /workouts/:id
+- Auth required: Yes
+- ID used:
+  :id = workout id
+- Body optional, send one or more:
+  name (string)
+  date (string)
+- Example body:
+  {
+    "date": "2026-04-15"
+  }
+
+DELETE WORKOUT
+- Method: DELETE
+- Endpoint: /workouts/:id
+- Auth required: Yes
+- ID used:
+  :id = workout id
+- Body: none
+
+==================================================
+4. EXERCISES ENDPOINTS
+==================================================
+
+Rules
+- Everyone logged in can read exercises
+- Only admin can create, update, or delete exercises
+
+CREATE EXERCISE
+- Method: POST
+- Endpoint: /exercises
+- Auth required: Yes
+- Role required: admin
+- Body required:
+  name (string)
+  muscle_group (string)
+- Example body:
+  {
+    "name": "Bench Press",
+    "muscle_group": "Chest"
+  }
+
+READ ALL EXERCISES
+- Method: GET
+- Endpoint: /exercises
+- Auth required: Yes
+- Body: none
+
+READ ONE EXERCISE
+- Method: GET
+- Endpoint: /exercises/:id
+- Auth required: Yes
+- ID used:
+  :id = exercise id
+- Body: none
+
+UPDATE EXERCISE FULL
+- Method: PUT
+- Endpoint: /exercises/:id
+- Auth required: Yes
+- Role required: admin
+- ID used:
+  :id = exercise id
+- Body required:
+  name (string)
+  muscle_group (string)
+- Example body:
+  {
+    "name": "Incline Bench Press",
+    "muscle_group": "Chest"
+  }
+
+UPDATE EXERCISE PARTIAL
+- Method: PATCH
+- Endpoint: /exercises/:id
+- Auth required: Yes
+- Role required: admin
+- ID used:
+  :id = exercise id
+- Body optional, send one or more:
+  name (string)
+  muscle_group (string)
+- Example body:
+  {
+    "muscle_group": "Upper Chest"
+  }
+
+DELETE EXERCISE
+- Method: DELETE
+- Endpoint: /exercises/:id
+- Auth required: Yes
+- Role required: admin
+- ID used:
+  :id = exercise id
+- Body: none
+
+==================================================
+5. LOGS ENDPOINTS
+==================================================
+
+Rules
+- admin can access all logs
+- user can access only logs connected to their own workouts
+
+CREATE LOG
+- Method: POST
+- Endpoint: /logs
+- Auth required: Yes
+- Body required:
+  workout_id (number)
+  exercise_id (number)
+  reps (number)
+  sets (number)
+- Notes:
+  workout_id must belong to the logged-in user unless requester is admin
+  exercise_id must exist
+- Example body:
+  {
+    "workout_id": 1,
+    "exercise_id": 3,
+    "reps": 10,
+    "sets": 3
+  }
+
+READ ALL LOGS
+- Method: GET
+- Endpoint: /logs
+- Auth required: Yes
+- Body: none
+- Result:
+  admin gets all logs
+  user gets only logs from own workouts
+
+READ ONE LOG
+- Method: GET
+- Endpoint: /logs/:id
+- Auth required: Yes
+- ID used:
+  :id = log id
+- Body: none
+
+UPDATE LOG FULL
+- Method: PUT
+- Endpoint: /logs/:id
+- Auth required: Yes
+- ID used:
+  :id = log id
+- Body required:
+  workout_id (number)
+  exercise_id (number)
+  reps (number)
+  sets (number)
+- Notes:
+  If workout_id is changed, target workout must still belong to that user unless requester is admin
+- Example body:
+  {
+    "workout_id": 1,
+    "exercise_id": 3,
+    "reps": 12,
+    "sets": 4
+  }
+
+UPDATE LOG PARTIAL
+- Method: PATCH
+- Endpoint: /logs/:id
+- Auth required: Yes
+- ID used:
+  :id = log id
+- Body optional, send one or more:
+  workout_id (number)
+  exercise_id (number)
+  reps (number)
+  sets (number)
+- Notes:
+  workout_id ownership is checked on patch too
+- Example body:
+  {
+    "reps": 8,
+    "sets": 5
+  }
+
+DELETE LOG
+- Method: DELETE
+- Endpoint: /logs/:id
+- Auth required: Yes
+- ID used:
+  :id = log id
+- Body: none
+
+==================================================
+6. COMMON STATUS RESPONSES
+==================================================
+
+Success
+- 200 OK = read, update, delete
+- 201 Created = new resource created
+
+Common Errors
+- 400 Bad Request = missing fields, invalid patch body, bad foreign key reference
+- 401 Unauthorized = token missing or invalid
+- 403 Forbidden = role or ownership violation
+- 404 Not Found = resource id does not exist
+- 409 Conflict = duplicate resource, for example duplicate username
+
+==================================================
+7. PRESENTATION FLOW IDEA
+==================================================
+
+Suggested demo order
+- Register admin
+- Register normal user
+- Login and get token
+- Admin creates exercise
+- User creates workout
+- User creates log for that workout
+- Show GET for workouts/logs
+- Show PUT or PATCH update
+- Show DELETE on one resource
